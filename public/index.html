@@ -5,27 +5,127 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Startup Pitch Analyzer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Startup Pitch Analyzer</h1>
-      <p>Describe your business idea. Our AI will analyze it to help you refine your pitch.</p>
-    </header>
+  <!-- Navigation Header -->
+  <nav class="saas-nav">
+    <div class="nav-brand">
+      <img src="images/logo.png" alt="PitchForge AI" class="nav-logo spin-in">
+      <span class="nav-title">PitchForge AI</span>
+    </div>
+    <div class="nav-links">
+      <a href="#">Solutions</a>
+      <a href="#" id="nav-features">Features</a>
+      <a href="#" id="nav-why-us">Why Us?</a>
+    </div>
+  </nav>
 
-    <main>
-      <section class="input-section">
-        <textarea id="idea-input" placeholder="Describe your startup idea... Be sure to include what it does, who it's for, and how it makes money."></textarea>
-        <button id="submit-btn">Analyze My Idea</button>
-      </section>
+  <!-- Hero Section -->
+  <div class="hero">
+    <h1>Validate your startup idea in seconds.</h1>
+    <p style="margin-bottom: 32px;">Stop guessing. Let our AI simulate real VC scrutiny before you build.</p>
+    
+    <div id="default-state">
+      <div class="stat-card hero-stat">
+        <div class="stat-number">85%</div>
+        <div class="stat-text">of founders struggle to clearly articulate their value proposition. Let our AI fortify your pitch before you face real investors.</div>
+      </div>
+    </div>
+  </div>
 
-      <section id="results-section" class="hidden">
-        <!-- Loading specific state -->
-        <div id="loading" class="hidden">
-          Analyzing<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+  <div class="app-grid">
+    <!-- Left Column: Input -->
+    <div class="input-panel left-column" id="left-column">
+      
+      <button id="reset-pitch-btn" class="back-arrow-btn hidden">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span>Back</span>
+      </button>
+      
+      <section class="input-section" id="text-input-section">
+
+        <div class="premium-input-wrapper">
+          <label for="idea-input" class="input-label">Executive Pitch Summary</label>
+          <p class="input-helper">Provide a high-level overview of your business idea.</p>
+          <textarea id="idea-input" class="premium-textarea" placeholder="Start typing your pitch overview here..."></textarea>
+
+          <label for="problem-input" class="input-label mt-4">Problem Solved</label>
+          <textarea id="problem-input" class="premium-textarea small" placeholder="What specific problem does this solve?"></textarea>
+
+          <label for="solution-input" class="input-label mt-4">Proposed Solution</label>
+          <textarea id="solution-input" class="premium-textarea small" placeholder="How does your product uniquely solve this problem?"></textarea>
+
+          <label for="audience-input" class="input-label mt-4">Target Audience</label>
+          <textarea id="audience-input" class="premium-textarea small" placeholder="Who is your target customer?"></textarea>
         </div>
 
+        <button id="submit-btn" class="primary-btn">
+          <span class="btn-text">Analyze Written Pitch</span>
+        </button>
+      </section>
+    </div>
+
+    <!-- Right Column: Output / Dashboard -->
+    <div class="output-panel right-column" id="right-column">
+      
+      <div id="media-upload-section" class="upload-zone">
+        <input type="file" id="media-upload" accept="audio/*,video/*" class="hidden-upload">
+        <div class="upload-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </div>
+        <span class="upload-title">Upload Video or Voice Pitch</span>
+        <span class="upload-subtitle">Supported: MP3, WAV, MP4, MOV (Max 50MB)</span>
+        <div id="file-preview" class="file-preview hidden">
+           <span id="file-name" class="file-name-text"></span>
+           <button type="button" id="remove-file-btn" class="remove-file-btn">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+           </button>
+        </div>
+        
+        <button id="submit-media-btn" class="primary-btn" style="margin-top: 24px; position: relative; z-index: 10;">
+          <span class="btn-text">Analyze Media Pitch</span>
+        </button>
+      </div>
+      
+
+      <!-- AI Processing Simulation -->
+      <div id="processing-state" class="hidden">
+        <div class="processing-card">
+          <h3 class="processing-title">AI is Simulating VC Review...</h3>
+          <div class="scanning-window">
+             <!-- Text Scanner Mode -->
+             <div id="text-scanner" class="scanner-mode">
+               <div class="scanner-line"></div>
+               <p id="simulated-text"></p>
+             </div>
+
+             <!-- Audio/Video Scanner Mode (Hidden initially) -->
+             <div id="audio-scanner" class="scanner-mode hidden">
+               <div class="wave-container">
+                 <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                 <div class="audio-scan-line"></div>
+               </div>
+               <p class="audio-caption">[Extracting audio features... Analyzing literal pitch, tone, and pacing]</p>
+             </div>
+          </div>
+          
+          <ul class="processing-steps">
+            <li id="step-1" class="pending">Parsing Executive Summary</li>
+            <li id="step-2" class="pending">Cross-referencing Market Data</li>
+            <li id="step-3" class="pending">Evaluating Revenue Viability</li>
+            <li id="step-4" class="pending">Generating Feedback</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Results Container -->
+      <div id="results-section" class="hidden">
+        
         <!-- Questions container -->
         <div id="questions-container" class="hidden">
           <div class="card warning-card">
@@ -37,6 +137,8 @@
 
         <!-- Full Analysis Container -->
         <div id="analysis-container" class="hidden">
+          <img src="images/icon.png" alt="Analytics Icon" class="analytics-icon">
+          
           <div class="card">
             <h2 class="card-label">1. Core Problem</h2>
             <div id="core-problem"></div>
@@ -58,10 +160,102 @@
             <div id="vc-questions" class="vc-list"></div>
           </div>
         </div>
-      </section>
-    </main>
+
+      </div>
+    </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Footer -->
+  <footer class="saas-footer">
+    <p>&copy; 2026 PitchForge AI. All rights reserved.</p>
+  </footer>
+  
+  <!-- Features Modal -->
+  <div id="features-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 960px;">
+      <button class="modal-close" id="close-features">&times;</button>
+      <h2>What PitchForge AI Does</h2>
+      <p class="modal-text">
+        Most founders fail because their narrative breaks under pressure. PitchForge AI bulletproofs your pitch by simulating the hardest parts of investor scrutiny.
+      </p>
+      
+      <div class="feature-grid">
+        <div class="feature-blurb">
+          <div class="blurb-icon">
+             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+          <h3>What it does</h3>
+          <p>PitchForge instantly processes your executive summary, problem, solution, and audience inputs (or raw audio/video waveforms), returning actionable VC-grade feedback.</p>
+        </div>
+        <div class="feature-blurb">
+          <div class="blurb-icon">
+             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3>Why it's important</h3>
+          <p>85% of startups fail to articulate their value proposition under pressure. This tool forces you to address fatal gaps in your narrative before a real investor shuts you down.</p>
+        </div>
+        <div class="feature-blurb">
+          <div class="blurb-icon">
+             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+          </div>
+          <h3>How it does it</h3>
+          <p>By cross-referencing your pitch against a proprietary database of YC frameworks, elite entrepreneurial heuristics, and millionaire-making pitch patterns with advanced LLMs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Why Us Modal -->
+  <div id="why-us-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 1000px;">
+      <button class="modal-close" id="close-why-us">&times;</button>
+      <h2>Why PitchForge AI?</h2>
+      
+      <div style="display: flex; gap: 40px; margin-top: 24px; align-items: stretch; flex-wrap: wrap;">
+        
+        <!-- Left Side: Copywriting -->
+        <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; justify-content: center;">
+          <p class="modal-text">
+            Generic chatbots are fine for writing emails, but they fail when simulating the high-stakes environment of startup funding. 
+          </p>
+          <div class="modal-highlight-box" style="margin-top: auto; margin-bottom: auto;">
+            <p class="modal-text" style="font-size: 19px;">
+              PitchForge AI is exclusively trained on the <span class="buzz-word">real analysis</span> of elite <span class="buzz-word">entrepreneurs</span>, successful <span class="buzz-word">podcasters</span>, and self-made <span class="buzz-word">millionaires</span>. 
+            </p>
+            <p class="modal-text">
+              We don't just generate text; we <span class="buzz-word">simulate reality</span> to make your pitch <span class="buzz-word">undeniable</span>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Side: Trust & Features -->
+        <div style="flex: 1; min-width: 300px;">
+          <div class="trust-box hero-box" style="margin-bottom: 24px; padding: 24px;">
+            <h3>Trusted by Founders At</h3>
+            <div class="trust-logos">
+               <span class="trust-brand">Y COMBINATOR</span>
+               <span class="trust-brand">TECHSTARS</span>
+               <span class="trust-brand">500 STARTUPS</span>
+            </div>
+            <p class="trust-subtitle">Over 10,000+ pitches analyzed successfully.</p>
+          </div>
+          
+          <div class="feature-list" style="display: flex; flex-direction: column; gap: 16px;">
+             <div class="feature-item">
+               <div class="feature-bullet"></div>
+               <div><strong>Instant Feedback</strong><br>Get actionable critique instantly.</div>
+             </div>
+             <div class="feature-item">
+               <div class="feature-bullet"></div>
+               <div><strong>VC-Grade Analysis</strong><br>Trained on thousands of successful pitches.</div>
+             </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=2"></script>
 </body>
 </html>
