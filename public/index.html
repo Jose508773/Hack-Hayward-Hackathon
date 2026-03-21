@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Startup Pitch Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Startup Pitch Analyzer</h1>
+      <p>Describe your business idea. Our AI will analyze it to help you refine your pitch.</p>
+    </header>
+
+    <main>
+      <section class="input-section">
+        <textarea id="idea-input" placeholder="Describe your startup idea... Be sure to include what it does, who it's for, and how it makes money."></textarea>
+        <button id="submit-btn">Analyze My Idea</button>
+      </section>
+
+      <section id="results-section" class="hidden">
+        <!-- Loading specific state -->
+        <div id="loading" class="hidden">
+          Analyzing<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+        </div>
+
+        <!-- Questions container -->
+        <div id="questions-container" class="hidden">
+          <div class="card warning-card">
+            <h2 class="card-label">Clarification Needed</h2>
+            <p>Your idea is missing some key details. Please answer the following questions to proceed:</p>
+            <ul id="questions-list"></ul>
+          </div>
+        </div>
+
+        <!-- Full Analysis Container -->
+        <div id="analysis-container" class="hidden">
+          <div class="card">
+            <h2 class="card-label">1. Core Problem</h2>
+            <div id="core-problem"></div>
+          </div>
+          <div class="card">
+            <h2 class="card-label">2. Target Audience</h2>
+            <div id="target-audience"></div>
+          </div>
+          <div class="card">
+            <h2 class="card-label">3. Proposed Solution</h2>
+            <div id="proposed-solution"></div>
+          </div>
+          <div class="card">
+            <h2 class="card-label">4. Lean Plan</h2>
+            <ul id="lean-plan" class="styled-list"></ul>
+          </div>
+          <div class="card">
+            <h2 class="card-label">5. Tough VC Questions</h2>
+            <div id="vc-questions" class="vc-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
