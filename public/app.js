@@ -125,6 +125,9 @@ document.addEventListener('DOMContentLoaded', () => {
     questionsContainer.classList.add('hidden');
     analysisContainer.classList.add('hidden');
     
+    const deliveryCritiqueContainer = document.getElementById('delivery-critique-container');
+    if (deliveryCritiqueContainer) deliveryCritiqueContainer.classList.add('hidden');
+    
     steps.forEach(s => s.className = 'pending');
     simulatedText.textContent = '';
     
@@ -134,6 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
     proposedSolutionEl.innerHTML = '';
     leanPlanEl.innerHTML = '';
     vcQuestionsEl.innerHTML = '';
+    
+    const deliveryCritiqueContent = document.getElementById('delivery-critique-content');
+    if (deliveryCritiqueContent) deliveryCritiqueContent.innerHTML = '';
   }
   
   const resetPitchBtn = document.getElementById('reset-pitch-btn');
@@ -256,12 +262,34 @@ document.addEventListener('DOMContentLoaded', () => {
     activateStep(0);
 
     try {
-      // We will perform fetch while simulating steps with artificial delay for visual effect
-      const apiPromise = fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea })
-      });
+      let apiPromise;
+      if (inputType === 'media') {
+        // Read file as Base64
+        const fileData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result;
+            // result is something like "data:audio/mp3;base64,xxxx"
+            const [metadata, base64] = result.split(',');
+            const mimeType = metadata.match(/:(.*?);/)[1];
+            resolve({ data: base64, mimeType });
+          };
+          reader.onerror = error => reject(error);
+          reader.readAsDataURL(selectedFile);
+        });
+
+        apiPromise = fetch('/api/analyze-media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: fileData })
+        });
+      } else {
+        apiPromise = fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idea })
+        });
+      }
       
       // Artificial step delays
       await new Promise(r => setTimeout(r, 1000));
@@ -285,12 +313,29 @@ document.addEventListener('DOMContentLoaded', () => {
       processingState.classList.add('hidden');
       resultsSection.classList.remove('hidden');
 
-      if (data.type === 'questions') {
-        renderQuestions(data.questions);
-      } else if (data.type === 'analysis') {
-        renderAnalysis(data.analysis);
+      if (inputType === 'media') {
+        // We show the delivery critique container instead of the JSON analysis
+        analysisContainer.classList.add('hidden');
+        questionsContainer.classList.add('hidden');
+        
+        const deliveryCritiqueContainer = document.getElementById('delivery-critique-container');
+        const deliveryCritiqueContent = document.getElementById('delivery-critique-content');
+        
+        deliveryCritiqueContainer.classList.remove('hidden');
+        
+        let formattedText = data.text
+          .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
+          .replace(/\\n/g, '<br/>');
+          
+        deliveryCritiqueContent.innerHTML = formattedText;
       } else {
-        throw new Error("Unknown response format.");
+        if (data.type === 'questions') {
+          renderQuestions(data.questions);
+        } else if (data.type === 'analysis') {
+          renderAnalysis(data.analysis);
+        } else {
+          throw new Error("Unknown response format.");
+        }
       }
 
     } catch (error) {
@@ -345,4 +390,287 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text) return "";
     return text.replace(/^[0-9]+.\s*[A-Za-z\s]+:\s*/, '').trim();
   }
+
+  // --- VOICE PITCHING (Microphone Input) ---
+  const recordMicBtn = document.getElementById('record-mic-btn');
+  const recordMicText = document.getElementById('record-mic-text');
+  const recordingStatus = document.getElementById('recording-status');
+  const recordingTimerEl = document.getElementById('recording-timer');
+  const deliveryCritiqueContainer = document.getElementById('delivery-critique-container');
+  const deliveryCritiqueContent = document.getElementById('delivery-critique-content');
+
+  let isRecording = false;
+  let recognition = null;
+  let finalTranscript = '';
+  let recordingStartTime = null;
+  let timerInterval = null;
+
+  // Filler words to detect
+  const FILLER_WORDS = ["um", "uh", "like", "you know", "basically", "so", "actually", "literally"];
+
+  if (recordMicBtn) {
+    recordMicBtn.addEventListener('click', toggleRecording);
+  }
+
+  function toggleRecording() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `\${m}:\${s < 10 ? '0' : ''}\${s}`;
+  }
+
+  function calculateMetrics(transcript, durationSec) {
+    const words = transcript.trim().split(/\\s+/).filter(w => w.length > 0);
+    const totalWords = words.length;
+    
+    // Pace: words per minute
+    const wordsPerMinute = durationSec > 0 ? Math.round((totalWords / durationSec) * 60) : 0;
+    
+    // Fillers count
+    const fillerCounts = {};
+    let totalFillers = 0;
+    
+    // Convert transcript to lowercase array for easier regex/matching
+    const lowerWords = words.map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    
+    // Simple individual word fillers (um, uh, like, so, actually, literally, basically)
+    lowerWords.forEach(w => {
+      if (FILLER_WORDS.includes(w)) {
+        fillerCounts[w] = (fillerCounts[w] || 0) + 1;
+        totalFillers++;
+      }
+    });
+    
+    // Multi-word fillers like "you know"
+    const transcriptLower = transcript.toLowerCase();
+    const youKnowMatches = transcriptLower.match(/\\byou know\\b/g);
+    if (youKnowMatches) {
+      fillerCounts['you know'] = (fillerCounts['you know'] || 0) + youKnowMatches.length;
+      totalFillers += youKnowMatches.length;
+    }
+
+    const fillerPercentage = totalWords > 0 ? ((totalFillers / totalWords) * 100).toFixed(1) : 0;
+
+    // Stuttered words (back-to-back same word)
+    const repeatedWords = [];
+    for (let i = 0; i < lowerWords.length - 1; i++) {
+      if (lowerWords[i] && lowerWords[i] === lowerWords[i + 1]) {
+        // Exclude common valid consecutive words like "had had" or "that that", though for pitching it's usually stutters
+        const stutter = `\${lowerWords[i]} \${lowerWords[i+1]}`;
+        if (!repeatedWords.includes(stutter)) repeatedWords.push(stutter);
+      }
+    }
+
+    // Repeated phrases (simple 3-gram back-to-back check as a fast heuristic)
+    // Accurate repeated phrase detection can be complex, this is basic:
+    const repeatedPhrases = [];
+    for (let i = 0; i < lowerWords.length - 5; i++) {
+        const trigram1 = `\${lowerWords[i]} \${lowerWords[i+1]} \${lowerWords[i+2]}`;
+        const trigram2 = `\${lowerWords[i+3]} \${lowerWords[i+4]} \${lowerWords[i+5]}`;
+        if (trigram1 === trigram2 && trigram1.trim().length > 3) {
+            if (!repeatedPhrases.includes(trigram1)) repeatedPhrases.push(trigram1);
+        }
+    }
+
+    return {
+      totalWords,
+      durationInSeconds: Math.round(durationSec),
+      wordsPerMinute,
+      totalFillers,
+      fillerCounts,
+      fillerPercentage,
+      repeatedWords,
+      repeatedPhrases
+    };
+  }
+
+  function startRecording() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support the Web Speech API. Please use Chrome, Edge, or Safari.");
+      return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    finalTranscript = '';
+    
+    recognition.onstart = () => {
+      isRecording = true;
+      recordingStartTime = Date.now();
+      
+      // Update UI
+      recordMicBtn.classList.add('recording-active');
+      recordMicText.innerHTML = "<strong>Stop Recording</strong>";
+      recordingStatus.classList.remove('hidden');
+      
+      // Timer Loop
+      timerInterval = setInterval(() => {
+        const elapsedSec = (Date.now() - recordingStartTime) / 1000;
+        recordingTimerEl.textContent = formatTime(elapsedSec);
+      }, 1000);
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      // We could display interim transcript if we had a dedicated text box for it
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      if(event.error === 'not-allowed') {
+        alert("Microphone access was denied. Please allow microphone access to record your pitch.");
+        stopRecording(true);
+      }
+    };
+
+    recognition.onend = () => {
+      // If stopped naturally or by error, ensure we clean up
+      if(isRecording) stopRecording();
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function stopRecording(cancel = false) {
+    isRecording = false;
+    clearInterval(timerInterval);
+    
+    if (recognition) {
+      recognition.stop();
+    }
+
+    // Reset UI
+    recordMicBtn.classList.remove('recording-active');
+    recordMicText.textContent = "Record Pitch (Microphone)";
+    recordingStatus.classList.add('hidden');
+    recordingTimerEl.textContent = "0:00";
+
+    if (cancel) return;
+
+    const durationSec = (Date.now() - recordingStartTime) / 1000;
+    if (finalTranscript.trim().length === 0 || durationSec < 2) {
+      alert("Recording was too short or no speech was detected. Please try again.");
+      return;
+    }
+
+    const metrics = calculateMetrics(finalTranscript, durationSec);
+    console.log("Recorded Transcript:", finalTranscript);
+    console.log("Calculated Metrics:", metrics);
+
+    await submitVoicePitch(finalTranscript, metrics);
+  }
+
+  async function submitVoicePitch(transcript, metrics) {
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    textInputSection.classList.add('hidden');
+    leftColumn.appendChild(mediaUploadSection);
+    
+    submitBtn.disabled = true;
+    if(submitMediaBtn) submitMediaBtn.disabled = true;
+    recordMicBtn.disabled = true;
+    
+    if (resetPitchBtn) resetPitchBtn.classList.remove('hidden');
+
+    resetResults();
+    
+    const textScanner = document.getElementById('text-scanner');
+    const audioScanner = document.getElementById('audio-scanner');
+    
+    textScanner.classList.add('hidden');
+    audioScanner.classList.remove('hidden');
+    
+    steps[0].innerHTML = "Transcribing & Diarizing Audio";
+    steps[1].innerHTML = "Analyzing Vocal Tone & Literal Pitch";
+    steps[2].innerHTML = "Evaluating Delivery Mechanics";
+    steps[3].innerHTML = "Generating Critical Feedback";
+
+    // Start simulation steps
+    function activateStep(index) {
+      if(index > 0) {
+        steps[index-1].classList.remove('active');
+        steps[index-1].classList.add('complete');
+      }
+      if(index < steps.length) {
+        steps[index].classList.add('active');
+      }
+    }
+    
+    activateStep(0);
+
+    try {
+      const apiPromise = fetch('/api/analyze-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, metrics })
+      });
+      
+      // Artificial step delays for presentation
+      await new Promise(r => setTimeout(r, 1000));
+      activateStep(1);
+      await new Promise(r => setTimeout(r, 1200));
+      activateStep(2);
+      await new Promise(r => setTimeout(r, 1000));
+      activateStep(3);
+      
+      const response = await apiPromise;
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze voice pitch.");
+      }
+
+      const data = await response.json();
+      
+      activateStep(4); 
+      await new Promise(r => setTimeout(r, 600));
+
+      processingState.classList.add('hidden');
+      resultsSection.classList.remove('hidden');
+      
+      // We only show the new delivery critique container for voice pitch
+      deliveryCritiqueContainer.classList.remove('hidden');
+      
+      // Render text (since it's markdown, doing string replace for basic formatting is good enough if we don't have a library)
+      let formattedText = data.text
+        .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
+        .replace(/\\n/g, '<br/>');
+        
+      deliveryCritiqueContent.innerHTML = formattedText;
+
+    } catch (error) {
+      processingState.classList.add('hidden');
+      defaultState.classList.remove('hidden');
+      alert("An error occurred while analyzing the pitch delivery. Please try again.");
+      console.error(error);
+    } finally {
+      submitBtn.disabled = false;
+      if (submitMediaBtn) submitMediaBtn.disabled = false;
+      recordMicBtn.disabled = false;
+    }
+  }
+
 });
+
