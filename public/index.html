@@ -89,6 +89,20 @@
         <button id="submit-media-btn" class="primary-btn" style="margin-top: 24px; position: relative; z-index: 10;">
           <span class="btn-text">Analyze Media Pitch</span>
         </button>
+
+        <div style="display: flex; align-items: center; justify-content: center; margin: 16px 0;">
+          <div style="height: 1px; background: #e2e8f0; flex: 1;"></div>
+          <span style="color: #64748b; font-size: 14px; font-weight: 500; margin: 0 16px;">OR</span>
+          <div style="height: 1px; background: #e2e8f0; flex: 1;"></div>
+        </div>
+
+        <button id="record-mic-btn" class="secondary-btn" style="width: 100%; border-radius: 8px; padding: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid #e2e8f0; background: white; color: #334155; cursor: pointer; transition: all 0.2s;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+          <span class="btn-text" id="record-mic-text">Record Pitch (Microphone)</span>
+        </button>
+        <div id="recording-status" class="hidden" style="text-align: center; margin-top: 12px; color: #ef4444; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span class="pulse-dot"></span> <span id="recording-timer">0:00</span> - Recording... Click to Stop
+        </div>
       </div>
       
 
@@ -158,6 +172,15 @@
             <h2 class="card-label">5. Tough VC Questions</h2>
             <div id="vc-questions" class="vc-list"></div>
           </div>
+        </div>
+
+        <!-- Voice Delivery Critique Container -->
+        <div id="delivery-critique-container" class="hidden">
+           <img src="images/icon.png" alt="Analytics Icon" class="analytics-icon">
+           <div class="card warning-card" style="border-left-color: #f59e0b; background-color: #fffbeb;">
+              <h2 class="card-label" style="color: #d97706;">Live Delivery Analysis</h2>
+              <div id="delivery-critique-content" class="markdown-body" style="white-space: pre-wrap; font-size: 15px; line-height: 1.6; color: #334155; margin-top: 12px;"></div>
+           </div>
         </div>
 
       </div>
