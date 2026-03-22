@@ -350,11 +350,19 @@ button:disabled {
 }
 
 .warning-card {
-  border-left: 4px solid #DC2626;
+  border-left-color: #F59E0B;
+  background-color: #FFFBEB;
+}
+.warning-card h2 {
+  color: #D97706;
 }
 
-.warning-card h2 {
-  color: #DC2626;
+.analysis-card {
+  border-left-color: #3b82f6;
+  background-color: #eff6ff;
+}
+.analysis-label {
+  color: #1e40af !important;
 }
 
 /* Loading State Animation */
@@ -616,9 +624,18 @@ ul {
   color: #EF4444;
   cursor: pointer;
   display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 4px;
   border-radius: 50%;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.remove-file-btn:active {
+  transform: scale(0.9);
 }
 
 .remove-file-btn:hover {
@@ -1115,4 +1132,57 @@ ul {
   background: #0F172A;
   color: #FFFFFF;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+/* Critique Markdown Styling */
+.critique-section-title {
+  color: #1e3a8a; /* Slate/Blue theme */
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 28px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #bfdbfe;
+  padding-bottom: 6px;
+}
+
+.critique-section-title:first-child {
+  margin-top: 4px;
+}
+
+h3.critique-section-title strong {
+  color: inherit; /* Prevent inline strong tags from breaking header style */
+}
+
+.critique-p {
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.critique-p strong {
+  color: #0f172a;
+}
+
+.critique-list {
+  margin-bottom: 20px;
+  padding-left: 24px;
+}
+
+.critique-li {
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.critique-li strong {
+  color: #0f172a;
+}
+
+.critique-li::marker {
+  color: #d97706;
 }

@@ -417,10 +417,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         deliveryCritiqueContainer.classList.remove('hidden');
         
-        let formattedText = data.text
-          .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
-          .replace(/\\n/g, '<br/>');
-          
+        // We use a custom markdown parser for the delivery critique text
+        let formattedText = parseCritiqueMarkdown(data.text);
         deliveryCritiqueContent.innerHTML = formattedText;
       } else {
         if (data.type === 'questions') {
@@ -495,6 +493,47 @@ document.addEventListener('DOMContentLoaded', () => {
   function stripNumberPrefix(text) {
     if (!text) return "";
     return text.replace(/^[0-9]+.\s*[A-Za-z\s]+:\s*/, '').trim();
+  }
+
+  // Parses markdown text from AI critique into styled HTML
+  function parseCritiqueMarkdown(text) {
+    let html = text
+      // Section headers like **DELIVERY SCORE: X/10**
+      .replace(/^\s*\*\*(.*?)\*\*\s*$/gm, '<h3 class="critique-section-title">$1</h3>')
+      // Inline strong
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Bullet points
+      .replace(/^\s*[-*]\s+(.*)$/gm, '<li class="critique-li">$1</li>')
+      .split('\n');
+
+    let finalHtml = '';
+    let inList = false;
+
+    for (let line of html) {
+      if (line.includes('<li class="critique-li">')) {
+        if (!inList) {
+          finalHtml += '<ul class="critique-list">';
+          inList = true;
+        }
+        finalHtml += line;
+      } else {
+        if (inList) {
+          finalHtml += '</ul>';
+          inList = false;
+        }
+        let cleanLine = line.trim();
+        if (cleanLine !== '') {
+          if (!cleanLine.startsWith('<h3')) {
+             finalHtml += `<p class="critique-p">${cleanLine}</p>`;
+          } else {
+             finalHtml += cleanLine;
+          }
+        }
+      }
+    }
+    if (inList) finalHtml += '</ul>';
+
+    return finalHtml;
   }
 
   // --- VOICE PITCHING (Microphone Input) ---
