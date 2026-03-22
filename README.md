@@ -1,6 +1,6 @@
-# Pitch Analyzer
-
-An AI-powered startup pitch mentor that analyzes your business ideas and provides structured feedback.
+# SpeakForge AI
+An AI-powered speaking  mentor that analyzes your pitch, presentation, speech, or report
+ and provides structured feedback.
 
 ## Setup
 
