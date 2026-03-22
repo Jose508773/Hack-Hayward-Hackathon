@@ -1079,3 +1079,40 @@ ul {
   box-shadow: 0 12px 28px rgba(2, 6, 23, 0.4);
   transform: translateY(-2px);
 }
+
+/* Pitch Type Selector Config */
+.pitch-type-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: #F8FAFC;
+  padding: 8px;
+  border-radius: 100px;
+  border: 1px solid #E2E8F0;
+}
+
+.type-btn {
+  flex: 1;
+  background: transparent;
+  color: #64748B;
+  border: none;
+  border-radius: 100px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+}
+
+.type-btn:hover {
+  color: #0F172A;
+  background: rgba(226, 232, 240, 0.5);
+  transform: translateY(0);
+}
+
+.type-btn.active {
+  background: #0F172A;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}

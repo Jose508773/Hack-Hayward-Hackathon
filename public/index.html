@@ -44,18 +44,25 @@
       
       <section class="input-section" id="text-input-section">
 
+        <!-- Pitch Type Selector -->
+        <div class="pitch-type-selector" id="pitch-type-selector">
+          <button type="button" class="type-btn active" data-type="startup">Startup Pitch</button>
+          <button type="button" class="type-btn" data-type="career">Career Pitch</button>
+          <button type="button" class="type-btn" data-type="academic">Academic Pitch</button>
+        </div>
+
         <div class="premium-input-wrapper">
-          <label for="idea-input" class="input-label">Executive Pitch Summary</label>
+          <label for="idea-input" class="input-label" id="label-idea">Executive Pitch Summary</label>
           <p class="input-helper">Provide a high-level overview of your business idea.</p>
           <textarea id="idea-input" class="premium-textarea" placeholder="Start typing your pitch overview here..."></textarea>
 
-          <label for="problem-input" class="input-label mt-4">Problem Solved</label>
+          <label for="problem-input" class="input-label mt-4" id="label-problem">Problem Solved</label>
           <textarea id="problem-input" class="premium-textarea small" placeholder="What specific problem does this solve?"></textarea>
 
-          <label for="solution-input" class="input-label mt-4">Proposed Solution</label>
+          <label for="solution-input" class="input-label mt-4" id="label-solution">Proposed Solution</label>
           <textarea id="solution-input" class="premium-textarea small" placeholder="How does your product uniquely solve this problem?"></textarea>
 
-          <label for="audience-input" class="input-label mt-4">Target Audience</label>
+          <label for="audience-input" class="input-label mt-4" id="label-audience">Target Audience</label>
           <textarea id="audience-input" class="premium-textarea small" placeholder="Who is your target customer?"></textarea>
         </div>
 

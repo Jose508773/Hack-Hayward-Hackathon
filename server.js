@@ -16,12 +16,58 @@ const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const SYSTEM_INSTRUCTION = `You are an experienced startup pitch coach who has mentored founders.
-When a user describes a business idea, analyze it and return a structured pitch analysis.
-Before giving the full analysis, evaluate whether the idea description includes enough detail about:
-- What the product/service does
-- Who it's for
-- How it makes money (or plans to)
+function getSystemInstruction(pitchType) {
+  let roleContext, evaluationCriteria, fieldDescriptions;
+  
+  if (pitchType === 'career') {
+    roleContext = "You are an elite career coach and executive recruiter who has prepared candidates for rigorous interviews.";
+    evaluationCriteria = "- Professional Background\\n- Goal / Role Applied For\\n- Key Impacts or Value Proposition";
+    fieldDescriptions = {
+      coreProblem: "1. Core Narrative: Describe the primary career objective or the gap the candidate is trying to fill. Focus on their 'why'.",
+      targetAudience: "2. Target Employer: Define the target company or hiring manager. Why is this candidate a good fit for them?",
+      proposedSolution: "3. Value Proposition: Summarize the candidate's unique strengths and how they solve the employer's needs.",
+      leanPlan: [
+        "Immediate Action step (e.g., tailoring resume)",
+        "Networking/Outreach step",
+        "Interview Preparation focus"
+      ],
+      vcQuestionsNote: "Brief note on what the interviewer is probing for."
+    };
+  } else if (pitchType === 'academic') {
+    roleContext = "You are an experienced academic advisor and conference reviewer.";
+    evaluationCriteria = "- Research Problem or Topic\\n- Methodology\\n- Potential Impact or Findings";
+    fieldDescriptions = {
+      coreProblem: "1. Research Gap: Describe the specific gap in current literature or problem being addressed.",
+      targetAudience: "2. Audience Context: Define who this research is for (e.g., thesis committee, conference) and why they care.",
+      proposedSolution: "3. Methodology & Findings: Summarize how the problem is studied and the core contributions.",
+      leanPlan: [
+        "Literature Review step",
+        "Data Collection / Analysis step",
+        "Publication / Defense step"
+      ],
+      vcQuestionsNote: "Brief note on what the committee member is probing for."
+    };
+  } else {
+    // startup
+    roleContext = "You are an experienced startup pitch coach who has mentored founders.";
+    evaluationCriteria = "- What the product/service does\\n- Who it's for\\n- How it makes money (or plans to)";
+    fieldDescriptions = {
+      coreProblem: "1. Core Problem: Describe the specific pain point or gap in the market this idea addresses. Frame it from the customer's perspective. Be concrete — avoid vague language like 'people struggle with...'",
+      targetAudience: "2. Target Audience: Define the primary customer segment. Include: Who they are, Estimated market size if inferable, Why this group feels the problem most acutely.",
+      proposedSolution: "3. Proposed Solution: Summarize what the product/service does and what makes it different from existing alternatives. Identify the unique value proposition (UVP) in one sentence.",
+      leanPlan: [
+        "Validation step (proving the problem exists)",
+        "MVP step (smallest testable version of the solution)",
+        "Traction step (first measurable sign of demand)"
+      ],
+      vcQuestionsNote: "Brief note on what the investor is probing for."
+    };
+  }
+
+  return `${roleContext}
+When a user describes a pitch idea, analyze it and return a structured pitch analysis.
+Before giving the full analysis, evaluate whether the description includes enough detail about:
+${evaluationCriteria}
 
 If any of these are missing or unclear, you must ask 2-3 targeted clarifying questions. Do NOT guess or fill in gaps yourself.
 
@@ -38,26 +84,22 @@ If you have enough information and can provide the analysis, return this JSON fo
 {
   "type": "analysis",
   "analysis": {
-    "coreProblem": "1. Core Problem: Describe the specific pain point or gap in the market this idea addresses. Frame it from the customer's perspective. Be concrete — avoid vague language like 'people struggle with...'",
-    "targetAudience": "2. Target Audience: Define the primary customer segment. Include: Who they are, Estimated market size if inferable, Why this group feels the problem most acutely.",
-    "proposedSolution": "3. Proposed Solution: Summarize what the product/service does and what makes it different from existing alternatives. Identify the unique value proposition (UVP) in one sentence.",
-    "leanPlan": [
-      "Validation step (proving the problem exists)",
-      "MVP step (smallest testable version of the solution)",
-      "Traction step (first measurable sign of demand)"
-    ],
+    "coreProblem": "${fieldDescriptions.coreProblem}",
+    "targetAudience": "${fieldDescriptions.targetAudience}",
+    "proposedSolution": "${fieldDescriptions.proposedSolution}",
+    "leanPlan": ${JSON.stringify(fieldDescriptions.leanPlan)},
     "vcQuestions": [
       {
         "question": "Question 1",
-        "note": "Brief note on what the investor is probing for."
+        "note": "${fieldDescriptions.vcQuestionsNote}"
       },
       {
         "question": "Question 2",
-        "note": "Brief note on what the investor is probing for."
+        "note": "${fieldDescriptions.vcQuestionsNote}"
       },
       {
         "question": "Question 3",
-        "note": "Brief note on what the investor is probing for."
+        "note": "${fieldDescriptions.vcQuestionsNote}"
       }
     ]
   }
@@ -65,13 +107,14 @@ If you have enough information and can provide the analysis, return this JSON fo
 
 RULES:
 - Be direct and honest. If the idea has a fundamental flaw, say so constructively in the analysis.
-- Do not flatter or sugarcoat. Founders benefit from candor.
-- Use plain language. Avoid startup jargon unless defining it.
+- Do not flatter or sugarcoat.
+- Use plain language. Avoid jargon unless defining it.
 - Keep the total analysis concise — aim for 400-600 words total across all sections.`;
+}
 
 app.post('/api/analyze', async (req, res) => {
   try {
-    const { idea } = req.body;
+    const { idea, pitchType } = req.body;
 
     if (!idea || idea.trim() === '') {
       return res.status(400).json({ error: "Idea description is required." });
@@ -81,7 +124,7 @@ app.post('/api/analyze', async (req, res) => {
       model: modelName,
       contents: idea,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: getSystemInstruction(pitchType || 'startup'),
         responseMimeType: "application/json",
       }
     });
@@ -102,24 +145,39 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
-const DELIVERY_CRITIQUE_PROMPT = `You are an elite pitch delivery coach who has prepared 
+function getDeliveryCritiquePrompt(pitchType) {
+  let roleContext, weakLanguageExamples;
+  
+  if (pitchType === 'career') {
+    roleContext = "You are an elite executive interview coach who prepares candidates for top-tier hiring panels. You analyze HOW candidates speak, not just what they say.";
+    weakLanguageExamples = '"I think", "maybe", "sort of", "kind of", "hopefully", "we were trying to", "I guess"';
+  } else if (pitchType === 'academic') {
+    roleContext = "You are an elite academic speaking coach who prepares PhDs for thesis defenses and major symposiums. You analyze HOW researchers speak, not just what they say.";
+    weakLanguageExamples = '"I think", "maybe", "sort of", "we hope to show", "potentially"';
+  } else {
+    // startup
+    roleContext = `You are an elite pitch delivery coach who has prepared 
 founders for Y Combinator Demo Day, Sequoia pitch meetings, and Andreessen Horowitz 
-partner presentations. You analyze HOW founders speak, not just what they say.
+partner presentations. You analyze HOW founders speak, not just what they say.`;
+    weakLanguageExamples = '"I think", "maybe", "sort of", "kind of", "hopefully", "we are trying to", "we want to", "pretty much"';
+  }
 
-You receive a founder's spoken pitch (transcribed from audio) and real-time speech 
+  return `${roleContext}
+
+You receive a speaker's spoken pitch (transcribed from audio) and real-time speech 
 analytics captured during their delivery.
 
 === SPEECH TRANSCRIPT ===
-\${transcript}
+${transcript}
 
 === DELIVERY METRICS ===
-- Total words spoken: \${metrics.totalWords}
-- Speaking duration: \${metrics.durationInSeconds} seconds
-- Speaking pace: \${metrics.wordsPerMinute} words per minute
-- Total filler words detected: \${metrics.totalFillers} (\${metrics.fillerPercentage}% of speech)
-- Filler word breakdown: \${JSON.stringify(metrics.fillerCounts)}
-- Stuttered words (repeated back-to-back): \${metrics.repeatedWords && metrics.repeatedWords.length > 0 ? metrics.repeatedWords.join(', ') : 'None detected'}
-- Repeated phrases: \${metrics.repeatedPhrases && metrics.repeatedPhrases.length > 0 ? metrics.repeatedPhrases.join('; ') : 'None detected'}
+- Total words spoken: ${metrics.totalWords}
+- Speaking duration: ${metrics.durationInSeconds} seconds
+- Speaking pace: ${metrics.wordsPerMinute} words per minute
+- Total filler words detected: ${metrics.totalFillers} (${metrics.fillerPercentage}% of speech)
+- Filler word breakdown: ${JSON.stringify(metrics.fillerCounts)}
+- Stuttered words (repeated back-to-back): ${metrics.repeatedWords && metrics.repeatedWords.length > 0 ? metrics.repeatedWords.join(', ') : 'None detected'}
+- Repeated phrases: ${metrics.repeatedPhrases && metrics.repeatedPhrases.length > 0 ? metrics.repeatedPhrases.join('; ') : 'None detected'}
 
 === INSTRUCTIONS ===
 
@@ -159,13 +217,9 @@ investor-ready. Be honest, not kind.
   used strategic pauses — and coach them on which moments needed a pause
 
 **WEAK LANGUAGE**
-- Find every hedge word or phrase: "I think", "maybe", "sort of", "kind of", 
-  "hopefully", "we are trying to", "we want to", "pretty much"
-- Explain why each one kills credibility with investors
+- Find every hedge word or phrase: ${weakLanguageExamples}
+- Explain why each one kills credibility
 - Provide a power replacement for each 
-  (e.g., "We are trying to build" → "We are building", 
-   "I think the market is big" → "The market is $4B and growing",
-   "Hopefully we can" → "We will")
 
 **TOP 3 FIXES**
 List exactly 3 things to fix before their next attempt. For each:
@@ -180,35 +234,36 @@ come with repetition."
 
 Remember: every sentence of your feedback must reference something specific from 
 their transcript or metrics. Zero generic advice.`;
+}
 
 // Build the prompt by literally replacing placeholders since the prompt is a string template
-function buildDeliveryPrompt(transcript, metrics) {
-  let promptText = DELIVERY_CRITIQUE_PROMPT.replace('\\${transcript}', transcript);
-  promptText = promptText.replace('\\${metrics.totalWords}', metrics.totalWords);
-  promptText = promptText.replace('\\${metrics.durationInSeconds}', metrics.durationInSeconds);
-  promptText = promptText.replace('\\${metrics.wordsPerMinute}', metrics.wordsPerMinute);
-  promptText = promptText.replace('\\${metrics.totalFillers}', metrics.totalFillers);
-  promptText = promptText.replace('\\${metrics.fillerPercentage}', metrics.fillerPercentage);
-  promptText = promptText.replace('\\${JSON.stringify(metrics.fillerCounts)}', JSON.stringify(metrics.fillerCounts || {}));
+function buildDeliveryPrompt(transcript, metrics, pitchType) {
+  let promptText = getDeliveryCritiquePrompt(pitchType || 'startup').replace('\${transcript}', transcript);
+  promptText = promptText.replace('\${metrics.totalWords}', metrics.totalWords);
+  promptText = promptText.replace('\${metrics.durationInSeconds}', metrics.durationInSeconds);
+  promptText = promptText.replace('\${metrics.wordsPerMinute}', metrics.wordsPerMinute);
+  promptText = promptText.replace('\${metrics.totalFillers}', metrics.totalFillers);
+  promptText = promptText.replace('\${metrics.fillerPercentage}', metrics.fillerPercentage);
+  promptText = promptText.replace('\${JSON.stringify(metrics.fillerCounts)}', JSON.stringify(metrics.fillerCounts || {}));
 
   const stutterString = (metrics.repeatedWords && metrics.repeatedWords.length > 0) ? metrics.repeatedWords.join(', ') : 'None detected';
   const repeatString = (metrics.repeatedPhrases && metrics.repeatedPhrases.length > 0) ? metrics.repeatedPhrases.join('; ') : 'None detected';
 
-  promptText = promptText.replace("\\${metrics.repeatedWords && metrics.repeatedWords.length > 0 ? metrics.repeatedWords.join(', ') : 'None detected'}", stutterString);
-  promptText = promptText.replace("\\${metrics.repeatedPhrases && metrics.repeatedPhrases.length > 0 ? metrics.repeatedPhrases.join('; ') : 'None detected'}", repeatString);
+  promptText = promptText.replace("\${metrics.repeatedWords && metrics.repeatedWords.length > 0 ? metrics.repeatedWords.join(', ') : 'None detected'}", stutterString);
+  promptText = promptText.replace("\${metrics.repeatedPhrases && metrics.repeatedPhrases.length > 0 ? metrics.repeatedPhrases.join('; ') : 'None detected'}", repeatString);
 
   return promptText;
 }
 
 app.post('/api/analyze-voice', async (req, res) => {
   try {
-    const { transcript, metrics } = req.body;
+    const { transcript, metrics, pitchType } = req.body;
 
     if (!transcript || transcript.trim() === '') {
       return res.status(400).json({ error: "Transcript is required." });
     }
 
-    const promptText = buildDeliveryPrompt(transcript, metrics);
+    const promptText = buildDeliveryPrompt(transcript, metrics, pitchType);
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -222,14 +277,25 @@ app.post('/api/analyze-voice', async (req, res) => {
   }
 });
 
-const MEDIA_CRITIQUE_PROMPT = `You are an elite pitch delivery coach who has prepared founders for Y Combinator Demo Day, Sequoia pitch meetings, and Andreessen Horowitz partner presentations. You analyze HOW founders speak, not just what they say.
+function getMediaCritiquePrompt(pitchType) {
+  let roleContext;
+  
+  if (pitchType === 'career') {
+    roleContext = "You are an elite executive interview coach preparing candidates for major hiring panels. You analyze HOW candidates speak, not just what they say.";
+  } else if (pitchType === 'academic') {
+    roleContext = "You are an elite academic speaking coach preparing scholars for thesis defenses and symposiums. You analyze HOW speakers deliver academic material.";
+  } else {
+    roleContext = "You are an elite pitch delivery coach who has prepared founders for YC Demo Day and Sequoia. You analyze HOW founders speak, not just what they say.";
+  }
 
-You receive a founder's spoken pitch as an audio file.
+  return `${roleContext}
+
+You receive a spoken presentation as an audio file.
 
 === INSTRUCTIONS ===
 
-Analyze this founder's DELIVERY and provide a brutally honest but constructive critique. 
-You are coaching them the night before Demo Day. Be specific — reference quotes from their pitch. Never give generic advice.
+Analyze this speaker's DELIVERY and provide a brutally honest but constructive critique. 
+Be specific — reference quotes from their delivery. Never give generic advice.
 
 Respond in this exact structure:
 
@@ -254,10 +320,11 @@ List exactly 3 things to fix before their next attempt.
 
 **WHAT WORKED**
 Identify 1-2 genuine strengths in their delivery.`;
+}
 
 app.post('/api/analyze-media', async (req, res) => {
   try {
-    const { file } = req.body;
+    const { file, pitchType } = req.body;
 
     if (!file || !file.data || !file.mimeType) {
       return res.status(400).json({ error: "Audio file data is required." });
@@ -272,7 +339,7 @@ app.post('/api/analyze-media', async (req, res) => {
             mimeType: file.mimeType
           }
         },
-        { text: MEDIA_CRITIQUE_PROMPT }
+        { text: getMediaCritiquePrompt(pitchType || 'startup') }
       ]
     });
 

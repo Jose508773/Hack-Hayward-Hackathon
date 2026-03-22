@@ -11,6 +11,100 @@ document.addEventListener('DOMContentLoaded', () => {
   const solutionInput = document.getElementById('solution-input');
   const audienceInput = document.getElementById('audience-input');
 
+  let currentPitchType = 'startup';
+
+  const typeConfig = {
+    startup: {
+      ideaLabel: "Executive Pitch Summary",
+      ideaPlaceholder: "Start typing your pitch overview here...",
+      problemLabel: "Problem Solved",
+      problemPlaceholder: "What specific problem does this solve?",
+      solutionLabel: "Proposed Solution",
+      solutionPlaceholder: "How does your product uniquely solve this problem?",
+      audienceLabel: "Target Audience",
+      audiencePlaceholder: "Who is your target customer?",
+      headers: {
+        coreProblem: "1. Core Problem",
+        targetAudience: "2. Target Audience",
+        proposedSolution: "3. Proposed Solution",
+        leanPlan: "4. Lean Plan",
+        vcQuestions: "5. Tough VC Questions"
+      }
+    },
+    career: {
+      ideaLabel: "Professional Background",
+      ideaPlaceholder: "Summarize your career journey and current role...",
+      problemLabel: "Goal / Role Applied For",
+      problemPlaceholder: "What position or goal are you aiming for?",
+      solutionLabel: "Key Achievements & Value",
+      solutionPlaceholder: "What makes you the best fit? Highlight key impacts.",
+      audienceLabel: "Target Employer/Audience",
+      audiencePlaceholder: "Who are you interviewing with (e.g. Hiring Manager, Panel)?",
+      headers: {
+        coreProblem: "1. Core Narrative",
+        targetAudience: "2. Target Employer",
+        proposedSolution: "3. Value Proposition",
+        leanPlan: "4. Action Plan",
+        vcQuestions: "5. Tough Interview Questions"
+      }
+    },
+    academic: {
+      ideaLabel: "Research Topic & Background",
+      ideaPlaceholder: "Summarize the field and your specific topic...",
+      problemLabel: "Research Problem / Gap",
+      problemPlaceholder: "What is the gap in current knowledge?",
+      solutionLabel: "Methodology & Results",
+      solutionPlaceholder: "How did you study this and what did you find?",
+      audienceLabel: "Target Audience",
+      audiencePlaceholder: "e.g., Thesis Committee, Conference Attendees",
+      headers: {
+        coreProblem: "1. Research Gap",
+        targetAudience: "2. Audience Context",
+        proposedSolution: "3. Methodology & Findings",
+        leanPlan: "4. Future Research / Timeline",
+        vcQuestions: "5. Tough Committee Questions"
+      }
+    }
+  };
+
+  const typeButtons = document.querySelectorAll('.type-btn');
+  const labelIdea = document.getElementById('label-idea');
+  const labelProblem = document.getElementById('label-problem');
+  const labelSolution = document.getElementById('label-solution');
+  const labelAudience = document.getElementById('label-audience');
+  const inputHelper = document.querySelector('.input-helper'); // The one under Idea
+
+  typeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      // Remove active class from all
+      typeButtons.forEach(b => b.classList.remove('active'));
+      const target = e.currentTarget;
+      target.classList.add('active');
+      
+      currentPitchType = target.dataset.type;
+      const config = typeConfig[currentPitchType];
+
+      // Update Labels
+      if(labelIdea) labelIdea.textContent = config.ideaLabel;
+      if(labelProblem) labelProblem.textContent = config.problemLabel;
+      if(labelSolution) labelSolution.textContent = config.solutionLabel;
+      if(labelAudience) labelAudience.textContent = config.audienceLabel;
+
+      // Update Placeholders
+      ideaInput.placeholder = config.ideaPlaceholder;
+      problemInput.placeholder = config.problemPlaceholder;
+      solutionInput.placeholder = config.solutionPlaceholder;
+      audienceInput.placeholder = config.audiencePlaceholder;
+      
+      // Update Helper Text slightly
+      if (inputHelper) {
+        if (currentPitchType === 'startup') inputHelper.textContent = "Provide a high-level overview of your business idea.";
+        if (currentPitchType === 'career') inputHelper.textContent = "Summarize your career arc and why you're pitching yourself.";
+        if (currentPitchType === 'academic') inputHelper.textContent = "Provide context on your research and academic goals.";
+      }
+    });
+  });
+
   // Upload Logic
   const fileUpload = document.getElementById('media-upload');
   const uploadZone = document.getElementById('media-upload-section');
@@ -281,13 +375,13 @@ document.addEventListener('DOMContentLoaded', () => {
         apiPromise = fetch('/api/analyze-media', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file: fileData })
+          body: JSON.stringify({ file: fileData, pitchType: currentPitchType })
         });
       } else {
         apiPromise = fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idea })
+          body: JSON.stringify({ idea, pitchType: currentPitchType })
         });
       }
       
@@ -359,21 +453,33 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAnalysis(analysis) {
     analysisContainer.classList.remove('hidden');
     
+    const config = typeConfig[currentPitchType].headers;
+    
     // Core Problem
+    const cpHeader = coreProblemEl.previousElementSibling;
+    if(cpHeader) cpHeader.textContent = config.coreProblem;
     coreProblemEl.textContent = stripNumberPrefix(analysis.coreProblem);
     
     // Target Audience
+    const taHeader = targetAudienceEl.previousElementSibling;
+    if(taHeader) taHeader.textContent = config.targetAudience;
     targetAudienceEl.textContent = stripNumberPrefix(analysis.targetAudience);
     
     // Proposed Solution
+    const psHeader = proposedSolutionEl.previousElementSibling;
+    if(psHeader) psHeader.textContent = config.proposedSolution;
     proposedSolutionEl.textContent = stripNumberPrefix(analysis.proposedSolution);
     
     // Lean Plan
+    const lpHeader = leanPlanEl.previousElementSibling;
+    if(lpHeader) lpHeader.textContent = config.leanPlan;
     leanPlanEl.innerHTML = analysis.leanPlan
       .map(item => `<li>${item}</li>`)
       .join('');
     
     // VC Questions
+    const vcHeader = vcQuestionsEl.previousElementSibling;
+    if(vcHeader) vcHeader.textContent = config.vcQuestions;
     vcQuestionsEl.innerHTML = analysis.vcQuestions
       .map(q => `
         <div class="question-block">
@@ -625,7 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const apiPromise = fetch('/api/analyze-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript, metrics })
+        body: JSON.stringify({ transcript, metrics, pitchType: currentPitchType })
       });
       
       // Artificial step delays for presentation
